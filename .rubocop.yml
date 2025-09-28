@@ -1,0 +1,44 @@
+inherit_gem:
+  rubocop-shopify: rubocop.yml
+
+plugins:
+  - rubocop-rails
+  - rubocop-performance
+  - rubocop-minitest
+  - rubocop-thread_safety
+
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "bin/**/*"
+    - "db/schema.rb"
+    - "db/queue_schema.rb"
+    - "db/cache_schema.rb"
+    - "db/cable_schema.rb"
+
+Rails:
+  Enabled: true
+
+Rails/UnknownEnv:
+  Environments:
+    - production
+    - development
+    - test
+
+Rails/RefuteMethods:
+  EnforcedStyle: refute
+
+Performance:
+  Enabled: true
+
+Minitest:
+  Enabled: true
+
+Minitest/MultipleAssertions:
+  Max: 7
+  Exclude:
+    - test/views/**/*
+
+ThreadSafety:
+  Enabled: true

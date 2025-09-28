@@ -1,0 +1,149 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-3xl font-bold text-white">Template Comparisons</h1>
+    <p class="mt-2 text-gray-400">Review differences between your local templates and Community Applications</p>
+  </div>
+
+  <!-- Pending Comparisons -->
+  <% if @pending_comparisons.any? %>
+    <div class="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+      <div class="px-4 py-5 sm:px-6 bg-orange-900 border-b border-orange-700">
+        <h3 class="text-lg leading-6 font-medium text-white">Pending Reviews</h3>
+        <p class="mt-1 max-w-2xl text-sm text-orange-100">These templates have differences that need your review</p>
+      </div>
+      <ul class="divide-y divide-gray-700">
+        <% @pending_comparisons.each do |comparison| %>
+          <li>
+            <%= link_to template_comparison_path(comparison), class: "block hover:bg-gray-700" do %>
+              <div class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <% if comparison.local_template.banner.present? %>
+                        <img class="h-10 w-10 rounded" src="<%= comparison.local_template.banner %>" alt="<%= comparison.local_template.name %>">
+                      <% else %>
+                        <div class="h-10 w-10 rounded bg-gray-600 flex items-center justify-center">
+                          <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                      <% end %>
+                    </div>
+                    <div class="ml-4">
+                      <div class="flex items-center">
+                        <p class="text-sm font-medium text-blue-400 truncate"><%= comparison.local_template.name %></p>
+                        <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <% if comparison.has_differences? %>
+                            <%= comparison.differences.keys.size %> difference<%= "s" unless comparison.differences.keys.size == 1 %>
+                          <% else %>
+                            No differences
+                          <% end %>
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-400 truncate"><%= comparison.local_template.repository %></p>
+                      <% if comparison.has_differences? %>
+                        <p class="text-sm text-gray-400 truncate">
+                          Fields: <%= comparison.differences.keys.first(3).join(", ") %><%= "..." if comparison.differences.keys.size > 3 %>
+                        </p>
+                      <% end %>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-sm text-gray-400">
+                    <% if comparison.last_compared_at.present? %>
+                      Compared <%= time_ago_in_words(comparison.last_compared_at) %> ago
+                    <% else %>
+                      Not compared yet
+                    <% end %>
+                    <svg class="ml-2 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Recent Reviewed Comparisons -->
+  <% if @reviewed_comparisons.any? %>
+    <div class="bg-gray-800 shadow border border-gray-700 overflow-hidden sm:rounded-md">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-white">Recently Reviewed</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-400">Templates that have been reviewed and are ready to apply</p>
+      </div>
+      <ul class="divide-y divide-gray-700">
+        <% @reviewed_comparisons.each do |comparison| %>
+          <li>
+            <%= link_to template_comparison_path(comparison), class: "block hover:bg-gray-700" do %>
+              <div class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <% if comparison.local_template.banner.present? %>
+                        <img class="h-10 w-10 rounded" src="<%= comparison.local_template.banner %>" alt="<%= comparison.local_template.name %>">
+                      <% else %>
+                        <div class="h-10 w-10 rounded bg-gray-600 flex items-center justify-center">
+                          <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                      <% end %>
+                    </div>
+                    <div class="ml-4">
+                      <div class="flex items-center">
+                        <p class="text-sm font-medium text-blue-400 truncate"><%= comparison.local_template.name %></p>
+                        <% if comparison.reviewed? %>
+                          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Ready to Apply
+                          </span>
+                        <% elsif comparison.applied? %>
+                          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Applied
+                          </span>
+                        <% end %>
+                      </div>
+                      <p class="text-sm text-gray-400 truncate"><%= comparison.local_template.repository %></p>
+                      <% if comparison.user_choices.present? %>
+                        <p class="text-sm text-gray-400 truncate">
+                          <%= comparison.user_choices.values.count("community") %> community choice<%= "s" unless comparison.user_choices.values.count("community") == 1 %>,
+                          <%= comparison.user_choices.values.count("local") %> local choice<%= "s" unless comparison.user_choices.values.count("local") == 1 %>
+                        </p>
+                      <% end %>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-sm text-gray-400">
+                    <% if comparison.applied_at.present? %>
+                      Applied <%= time_ago_in_words(comparison.applied_at) %> ago
+                    <% elsif comparison.last_compared_at.present? %>
+                      Reviewed <%= time_ago_in_words(comparison.last_compared_at) %> ago
+                    <% end %>
+                    <svg class="ml-2 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if @pending_comparisons.empty? && @reviewed_comparisons.empty? %>
+    <div class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-white">No comparisons available</h3>
+      <p class="mt-1 text-sm text-gray-400">All your templates are up to date!</p>
+      <div class="mt-6">
+        <%= link_to "View Templates", templates_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,215 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex justify-between items-start">
+    <div>
+      <nav class="flex" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+          <li>
+            <%= link_to template_comparisons_path, class: "text-gray-400 hover:text-gray-300" do %>
+              <span>Comparisons</span>
+            <% end %>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span class="ml-4 text-sm font-medium text-gray-400"><%= @comparison.local_template.name %></span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      <h1 class="mt-2 text-3xl font-bold text-white"><%= @comparison.local_template.name %></h1>
+      <p class="mt-2 text-gray-400">Review differences and choose which values to keep</p>
+    </div>
+    <div class="flex items-center space-x-3">
+case @comparison.status
+        when "pending" then "bg-orange-100 text-orange-800"
+        when "reviewed" then "bg-blue-100 text-blue-800"
+        when "applied" then "bg-green-100 text-green-800"
+        end
+                                                                                           %>">
+        <%= @comparison.status.humanize %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Template info -->
+  <div class="bg-gray-800 shadow border border-gray-700 rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <% if @comparison.local_template.banner.present? %>
+            <img class="h-12 w-12 rounded" src="<%= @comparison.local_template.banner %>" alt="<%= @comparison.local_template.name %>">
+          <% else %>
+            <div class="h-12 w-12 rounded bg-gray-600 flex items-center justify-center">
+              <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          <% end %>
+        </div>
+        <div class="ml-4">
+          <h3 class="text-lg font-medium text-white"><%= @comparison.local_template.name %></h3>
+          <p class="text-sm text-gray-400"><%= @comparison.local_template.repository %></p>
+          <% if @comparison.local_template.description.present? %>
+            <p class="text-sm text-gray-300 mt-1"><%= @comparison.local_template.description %></p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @differences.empty? %>
+    <div class="bg-green-900 border border-green-700 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-green-800">Template is up to date</h3>
+          <div class="mt-2 text-sm text-green-700">
+            <p>No differences found between your local template and the Community Applications version.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <!-- Differences form -->
+    <%= form_with model: @comparison, url: template_comparison_path(@comparison), method: :patch, local: true, class: "space-y-6" do |form| %>
+      <div class="bg-gray-800 shadow border border-gray-700 rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg font-medium text-white mb-4">Choose Values</h3>
+          <div class="space-y-6">
+            <% @differences.each do |field_name, difference| %>
+              <div class="border border-gray-600 rounded-lg p-4">
+                <div class="mb-3">
+                  <h4 class="text-sm font-medium text-white">
+                    <%= difference["field_name"] || field_name.humanize %>
+                    <% if difference["type"] %>
+                      <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        <%= difference["type"].humanize %>
+                      </span>
+                    <% end %>
+                  </h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Local Value -->
+                  <div class="space-y-2">
+                    <label class="flex items-center">
+                      <%= form.radio_button(
+                            field_name,
+                            "local",
+                            checked: @user_choices[field_name] == "local" || @user_choices[field_name].nil?,
+                            class: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-600",
+                          ) %>
+                      <span class="ml-2 text-sm font-medium text-gray-300">Keep Local Value</span>
+                    </label>
+                    <div class="bg-blue-900 border border-blue-700 rounded p-3">
+                      <% if difference["type"] == "config" && difference["field_differences"] %>
+                        <div class="space-y-2">
+                          <% difference["field_differences"].each do |field, change| %>
+                            <div>
+                              <span class="text-xs font-medium text-gray-300"><%= field.humanize %>:</span>
+                              <div class="text-sm text-white font-mono bg-gray-700 p-1 rounded border">
+                                <%= change["local"] || "(empty)" %>
+                              </div>
+                            </div>
+                          <% end %>
+                        </div>
+                      <% elsif difference["type"] == "new_config" %>
+                        <p class="text-sm text-gray-300 italic">This config will not be added</p>
+                      <% elsif difference["type"] == "removed_config" %>
+                        <div class="text-sm text-white font-mono bg-gray-700 p-2 rounded border">
+                          <%= difference["local"]["description"] || "Config exists in local template" %>
+                        </div>
+                      <% else %>
+                        <div class="text-sm text-white font-mono bg-gray-700 p-2 rounded border">
+                          <%= difference["local"] || "(empty)" %>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <!-- Community Value -->
+                  <div class="space-y-2">
+                    <label class="flex items-center">
+                      <%= form.radio_button(
+                            field_name,
+                            "community",
+                            checked: @user_choices[field_name] == "community",
+                            class: "focus:ring-green-500 h-4 w-4 text-green-600 border-gray-600",
+                          ) %>
+                      <span class="ml-2 text-sm font-medium text-gray-300">Use Community Value</span>
+                    </label>
+                    <div class="bg-green-900 border border-green-700 rounded p-3">
+                      <% if difference["type"] == "config" && difference["field_differences"] %>
+                        <div class="space-y-2">
+                          <% difference["field_differences"].each do |field, change| %>
+                            <div>
+                              <span class="text-xs font-medium text-gray-300"><%= field.humanize %>:</span>
+                              <div class="text-sm text-white font-mono bg-gray-700 p-1 rounded border">
+                                <%= change["community"] || "(empty)" %>
+                              </div>
+                            </div>
+                          <% end %>
+                        </div>
+                      <% elsif difference["type"] == "new_config" %>
+                        <div class="text-sm text-white bg-gray-700 p-2 rounded border">
+                          <div class="font-medium"><%= difference["community"]["name"] %></div>
+                          <div class="text-xs text-gray-300">Type: <%= difference["community"]["config_type"] %></div>
+                          <div class="text-xs text-gray-300">Description: <%= difference["community"]["description"] %></div>
+                        </div>
+                      <% elsif difference["type"] == "removed_config" %>
+                        <p class="text-sm text-gray-300 italic">This config will be removed</p>
+                      <% else %>
+                        <div class="text-sm text-white font-mono bg-gray-700 p-2 rounded border">
+                          <%= difference["community"] || "(empty)" %>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-between">
+        <%= link_to "Cancel", template_comparisons_path, class: "bg-gray-700 py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        <%= form.submit("Save Choices", class: "ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500") %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <!-- Apply changes section -->
+  <% if @comparison.reviewed? %>
+    <div class="bg-blue-900 border border-blue-700 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-sm font-medium text-blue-200">Ready to Apply Changes</h3>
+          <div class="mt-2 text-sm text-blue-100">
+            <p>Your choices have been saved. Click the button below to apply the changes to your local template.</p>
+          </div>
+          <div class="mt-4">
+            <%= button_to "Apply Changes",
+                  apply_template_comparison_path(@comparison),
+                  method: :patch,
+                  data: { confirm: "This will modify your local template file. A backup will be created automatically. Continue?" },
+                  class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

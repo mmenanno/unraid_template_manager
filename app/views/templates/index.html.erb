@@ -1,0 +1,167 @@
+<div class="space-y-6">
+  <!-- Header with sync button -->
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-white">UnRAID Templates</h1>
+      <p class="mt-2 text-gray-400">Manage your local UnRAID Docker application templates</p>
+    </div>
+    <div class="flex items-center space-x-4">
+      <% if @pending_comparisons_count > 0 %>
+        <%= link_to template_comparisons_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500" do %>
+          <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <%= @pending_comparisons_count %> Pending Review<%= "s" if @pending_comparisons_count != 1 %>
+        <% end %>
+      <% end %>
+      <%= button_to sync_templates_path, method: :post, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" do %>
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Sync Templates
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-400 truncate">Total Templates</dt>
+              <dd class="text-lg font-medium text-white"><%= @local_templates.count %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.75 0L4.064 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-400 truncate">Pending Reviews</dt>
+              <dd class="text-lg font-medium text-white"><%= @pending_comparisons_count %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-700">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-400 truncate">Up to Date</dt>
+              <dd class="text-lg font-medium text-white"><%= @local_templates.count - @pending_comparisons_count %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates list -->
+  <div class="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-white">Local Templates</h3>
+      <p class="mt-1 max-w-2xl text-sm text-gray-400">Your UnRAID Docker application templates</p>
+    </div>
+    <ul class="divide-y divide-gray-700">
+      <% @local_templates.each do |template| %>
+        <li>
+          <%= link_to template_path(template), class: "block hover:bg-gray-700" do %>
+            <div class="px-4 py-4 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <% if template.banner.present? %>
+                      <img class="h-10 w-10 rounded" src="<%= template.banner %>" alt="<%= template.name %>">
+                    <% else %>
+                      <div class="h-10 w-10 rounded bg-gray-600 flex items-center justify-center">
+                        <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="ml-4">
+                    <div class="flex items-center">
+                      <p class="text-sm font-medium text-blue-400 truncate"><%= template.name %></p>
+                      <% if template.has_comparison? %>
+                        <% comparison = template.latest_comparison %>
+                        <% if comparison.pending? %>
+                          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            Needs Review
+                          </span>
+                        <% elsif comparison.reviewed? %>
+                          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Ready to Apply
+                          </span>
+                        <% elsif comparison.applied? %>
+                          <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Up to Date
+                          </span>
+                        <% end %>
+                      <% end %>
+                    </div>
+                    <p class="text-sm text-gray-400 truncate"><%= template.repository %></p>
+                    <% if template.description.present? %>
+                      <p class="text-sm text-gray-400 truncate"><%= truncate(template.description, length: 100) %></p>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="flex items-center text-sm text-gray-400">
+                  <% if template.last_updated_at.present? %>
+                    Updated <%= time_ago_in_words(template.last_updated_at) %> ago
+                  <% else %>
+                    No recent updates
+                  <% end %>
+                  <svg class="ml-2 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <% if @local_templates.empty? %>
+      <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-white">No templates found</h3>
+        <p class="mt-1 text-sm text-gray-400">Get started by syncing your templates.</p>
+        <div class="mt-6">
+          <%= button_to sync_templates_path, method: :post, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" do %>
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sync Templates
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
