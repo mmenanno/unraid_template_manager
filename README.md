@@ -97,7 +97,10 @@ The app is designed to run as a Docker container on UnRAID:
 1. Map the template directory:
    `/boot/config/plugins/dockerMan/templates-user:/templates`
 2. Map a storage directory: `/mnt/user/appdata/unraid_template_manager:/rails/storage`
-3. The app will automatically discover and manage your templates
+3. **Important**: Container must run as root to access UnRAID templates directory
+   (UnRAID templates are owned by `root:root` with `700` permissions)
+4. The app will automatically discover and manage your templates
+
 
 ## API Integration
 
