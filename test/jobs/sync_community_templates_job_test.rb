@@ -171,4 +171,101 @@ class SyncCommunityTemplatesJobTest < ActiveJob::TestCase
     assert_equal 0, result[:updated]
     assert_equal 0, result[:errors]
   end
+
+  test "should handle templates with empty TemplateURL by building XML from feed data" do
+    Template.destroy_all
+
+    Template.create!(
+      name: "homeassistant",
+      repository: "lscr.io/linuxserver/homeassistant",
+      network: "host",
+      category: "HomeAutomation",
+      webui: "http://[IP]:[PORT:8123]",
+      description: "Home Assistant Core",
+      xml_content: "<Container><Name>homeassistant</Name></Container>",
+      source: "local",
+    )
+
+    community_response_with_empty_url = {
+      "Name" => "homeassistant",
+      "Repository" => "lscr.io/linuxserver/homeassistant",
+      "Network" => "host",
+      "CategoryList" => ["HomeAutomation"],
+      "Icon" => "https://example.com/homeassistant.png",
+      "WebUI" => "http://[IP]:[PORT:8123]",
+      "Overview" => "Home Assistant Core",
+      "TemplateURL" => "",
+      "Config" => [
+        {
+          "@attributes" => {
+            "Name" => "Appdata",
+            "Target" => "/config",
+            "Default" => "",
+            "Mode" => "rw",
+            "Type" => "Path",
+            "Display" => "advanced",
+            "Required" => "true",
+          },
+          "value" => "",
+        },
+      ],
+    }
+
+    CommunityApplicationsClient.any_instance
+      .stubs(:find_template_by_repository)
+      .with("lscr.io/linuxserver/homeassistant")
+      .returns(community_response_with_empty_url)
+
+    result = SyncCommunityTemplatesJob.perform_now
+
+    assert_equal 1, result[:created]
+    assert_equal 0, result[:updated]
+    assert_equal 0, result[:errors]
+  end
+
+  test "should generate valid XML content when TemplateURL is empty" do
+    Template.destroy_all
+
+    Template.create!(
+      name: "homeassistant",
+      repository: "lscr.io/linuxserver/homeassistant",
+      network: "host",
+      category: "HomeAutomation",
+      webui: "http://[IP]:[PORT:8123]",
+      description: "Home Assistant Core",
+      xml_content: "<Container><Name>homeassistant</Name></Container>",
+      source: "local",
+    )
+
+    community_response_with_empty_url = {
+      "Name" => "homeassistant",
+      "Repository" => "lscr.io/linuxserver/homeassistant",
+      "TemplateURL" => "",
+      "Config" => [
+        {
+          "@attributes" => {
+            "Name" => "Appdata",
+            "Target" => "/config",
+            "Type" => "Path",
+          },
+          "value" => "",
+        },
+      ],
+    }
+
+    CommunityApplicationsClient.any_instance
+      .stubs(:find_template_by_repository)
+      .with("lscr.io/linuxserver/homeassistant")
+      .returns(community_response_with_empty_url)
+
+    SyncCommunityTemplatesJob.perform_now
+
+    community_template = Template.community.find_by(repository: "lscr.io/linuxserver/homeassistant")
+
+    refute_nil community_template
+    refute_nil community_template.xml_content
+    assert_includes community_template.xml_content, "<Name>homeassistant</Name>"
+    assert_includes community_template.xml_content, "<Repository>lscr.io/linuxserver/homeassistant</Repository>"
+    assert_includes community_template.xml_content, "Config"
+  end
 end
