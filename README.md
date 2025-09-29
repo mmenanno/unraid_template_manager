@@ -87,8 +87,8 @@ The app includes comprehensive test coverage for:
 
 Key configuration in `config/application.rb`:
 
-- `config.template_directory`: Local template scan path (default: UnRAID path)
-- `config.backup_directory`: Backup location for original templates
+- `config.template_directory`: Template scan path (default: `/templates` Docker volume)
+- `config.backup_directory`: Backup location for original templates (default: `/storage/backups` Docker volume)
 
 ## Deployment
 
@@ -96,7 +96,7 @@ The app is designed to run as a Docker container on UnRAID:
 
 1. Map the template directory:
    `/boot/config/plugins/dockerMan/templates-user:/templates`
-2. Map a backup directory: `/mnt/user/backups/templates:/backups`
+2. Map a storage directory: `/mnt/user/appdata/unraid_template_manager:/rails/storage`
 3. The app will automatically discover and manage your templates
 
 ## API Integration

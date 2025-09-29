@@ -81,7 +81,10 @@ class LocalTemplateScanner
 
   def validate_directory!
     unless File.directory?(@template_directory)
-      raise DirectoryNotFoundError, "Template directory does not exist: #{@template_directory}"
+      raise DirectoryNotFoundError,
+        "Template directory does not exist: #{@template_directory}. " \
+          "Ensure the UnRAID template directory is mapped to /templates volume. " \
+          "Use: -v /boot/config/plugins/dockerMan/templates-user:/templates"
     end
 
     unless File.readable?(@template_directory)

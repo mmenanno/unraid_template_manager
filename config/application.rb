@@ -49,7 +49,8 @@ module UnraidTemplateManager
       generate_or_load_secret_key_base
 
     # UnRAID template configuration
-    config.template_directory = ENV.fetch("UNRAID_TEMPLATE_DIRECTORY", "/boot/config/plugins/dockerMan/templates-user")
+    # Use Docker volume mapped directories by default
+    config.template_directory = ENV.fetch("UNRAID_TEMPLATE_DIRECTORY", "/templates")
     config.backup_directory = ENV.fetch("BACKUP_DIRECTORY", Rails.root.join("storage/backups").to_s)
   end
 end
