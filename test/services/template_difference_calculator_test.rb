@@ -90,6 +90,94 @@ class TemplateDifferenceCalculatorTest < ActiveSupport::TestCase
     assert_equal "Duplicati is a backup client that stores encrypted backups", differences["description"]["community"]
   end
 
+  test "should ignore HTML tag differences in description field" do
+    # Create templates with same content but different HTML formatting
+    local_xml = <<~XML
+      <?xml version="1.0"?>
+      <Container version="2">
+        <Name>mongodb</Name>
+        <Repository>mongo</Repository>
+        <Overview>MongoDBMongoDB (from "humongous") is a database</Overview>
+      </Container>
+    XML
+
+    community_xml = <<~XML
+      <?xml version="1.0"?>
+      <Container version="2">
+        <Name>mongodb</Name>
+        <Repository>mongo</Repository>
+        <Overview>[h3]MongoDB[/h3]MongoDB (from "humongous") is a database</Overview>
+      </Container>
+    XML
+
+    local_template = Template.create!(
+      name: "mongodb",
+      repository: "mongo-local",
+      description: "MongoDBMongoDB (from \"humongous\") is a database",
+      xml_content: local_xml,
+      source: "local",
+    )
+
+    community_template = Template.create!(
+      name: "mongodb",
+      repository: "mongo-community",
+      description: "[h3]MongoDB[/h3]MongoDB (from \"humongous\") is a database",
+      xml_content: community_xml,
+      source: "community",
+    )
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    # Should not detect a difference since the content is the same after stripping tags
+    refute_includes differences, "description"
+  end
+
+  test "should still detect real content differences in description field with HTML tags" do
+    # Create templates with different content even after stripping HTML
+    local_xml = <<~XML
+      <?xml version="1.0"?>
+      <Container version="2">
+        <Name>mongodb</Name>
+        <Repository>mongo</Repository>
+        <Overview>[h3]MongoDB[/h3]MongoDB is a database</Overview>
+      </Container>
+    XML
+
+    community_xml = <<~XML
+      <?xml version="1.0"?>
+      <Container version="2">
+        <Name>mongodb</Name>
+        <Repository>mongo</Repository>
+        <Overview>[h3]MongoDB[/h3]MongoDB is a NoSQL database</Overview>
+      </Container>
+    XML
+
+    local_template = Template.create!(
+      name: "mongodb",
+      repository: "mongo-local",
+      description: "[h3]MongoDB[/h3]MongoDB is a database",
+      xml_content: local_xml,
+      source: "local",
+    )
+
+    community_template = Template.create!(
+      name: "mongodb",
+      repository: "mongo-community",
+      description: "[h3]MongoDB[/h3]MongoDB is a NoSQL database",
+      xml_content: community_xml,
+      source: "community",
+    )
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    # Should detect a difference since the content is different after stripping tags
+    assert_includes differences, "description"
+    assert_equal "MongoDBMongoDB is a database", differences["description"]["local"]
+    assert_equal "MongoDBMongoDB is a NoSQL database", differences["description"]["community"]
+  end
+
   test "should detect config differences" do
     differences = @calculator.calculate
 

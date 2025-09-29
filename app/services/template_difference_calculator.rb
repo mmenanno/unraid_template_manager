@@ -163,6 +163,9 @@ class TemplateDifferenceCalculator
     case field_name
     when "category"
       normalize_category(normalized)
+    when "description"
+      # Strip HTML/UnRAID tags for comparison (but preserve original formatting in XML)
+      strip_unraid_tags(normalized)
     else
       normalized
     end
@@ -194,5 +197,19 @@ class TemplateDifferenceCalculator
     normalized = normalized.gsub(/[-:]+$/, "")
 
     normalized.empty? ? nil : normalized
+  end
+
+  def strip_unraid_tags(text)
+    return if text.blank?
+
+    # Strip UnRAID-style tags like [h3]...[/h3], [b]...[/b], [i]...[/i], etc.
+    # This allows comparison of content regardless of formatting tags
+    # e.g., "[h3]MongoDB[/h3]MongoDB" becomes "MongoDBMongoDB"
+    stripped = text.gsub(/\[[^\]]*\]/, "")
+
+    # Normalize whitespace after tag removal
+    stripped = stripped.gsub(/\s+/, " ").strip
+
+    stripped.empty? ? nil : stripped
   end
 end
