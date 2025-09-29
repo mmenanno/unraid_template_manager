@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  job_type: MyString
+  status: MyString
+  started_at: 2025-09-29 00:01:51
+  completed_at: 2025-09-29 00:01:51
+  results: MyText
+  error_message: MyText
+
+two:
+  job_type: MyString
+  status: MyString
+  started_at: 2025-09-29 00:01:51
+  completed_at: 2025-09-29 00:01:51
+  results: MyText
+  error_message: MyText

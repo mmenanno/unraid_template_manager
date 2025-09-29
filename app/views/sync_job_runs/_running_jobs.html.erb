@@ -1,0 +1,24 @@
+<% if running_jobs.any? %>
+  <div class="bg-yellow-900 border border-yellow-700 rounded-md p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-yellow-200">Jobs Currently Running</h3>
+        <div class="mt-2 text-sm text-yellow-100">
+          <ul class="space-y-1">
+            <% running_jobs.each do |job| %>
+              <li class="flex items-center justify-between">
+                <span><%= job.job_type.humanize %> - Started <%= time_ago_in_words(job.started_at) %> ago</span>
+                <span class="text-yellow-300 ml-2"><%= job.duration_text %></span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

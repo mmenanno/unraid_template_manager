@@ -10,7 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_28_233950) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_29_045255) do
+  create_table "sync_job_runs", force: :cascade do |t|
+    t.string "job_type", null: false
+    t.string "status", default: "running", null: false
+    t.datetime "started_at", null: false
+    t.datetime "completed_at"
+    t.text "results"
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["job_type"], name: "index_sync_job_runs_on_job_type"
+    t.index ["started_at"], name: "index_sync_job_runs_on_started_at"
+    t.index ["status"], name: "index_sync_job_runs_on_status"
+  end
+
   create_table "template_comparisons", force: :cascade do |t|
     t.integer "local_template_id", null: false
     t.integer "community_template_id", null: false
@@ -21,6 +35,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_233950) do
     t.datetime "applied_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "manual_edits", default: {}
     t.index ["community_template_id"], name: "index_template_comparisons_on_community_template_id"
     t.index ["last_compared_at"], name: "index_template_comparisons_on_last_compared_at"
     t.index ["local_template_id", "community_template_id"], name: "index_template_comparisons_on_template_pair", unique: true
@@ -62,7 +77,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_233950) do
     t.datetime "last_updated_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "community_repository"
+    t.boolean "not_in_community", default: false, null: false
     t.index ["name"], name: "index_templates_on_name"
+    t.index ["not_in_community"], name: "index_templates_on_not_in_community"
     t.index ["repository", "source"], name: "index_templates_on_repository_and_source", unique: true
     t.index ["repository"], name: "index_templates_on_repository"
     t.index ["source"], name: "index_templates_on_source"

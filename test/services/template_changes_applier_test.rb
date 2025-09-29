@@ -236,4 +236,126 @@ class TemplateChangesApplierTest < ActiveSupport::TestCase
     assert_equal "/backups", backups_config["Target"]
     assert_equal "Backup storage", backups_config["Description"]
   end
+
+  test "should convert single-word community categories to UnRAID format with trailing colon" do
+    community_category = "Downloaders"
+    applier = TemplateChangesApplier.new(@comparison)
+
+    result = applier.send(:convert_category_to_unraid_format, community_category)
+
+    assert_equal "Downloaders:", result
+  end
+
+  test "should convert multi-part community categories to UnRAID format without trailing colon" do
+    community_category = "Tools-Utilities"
+    applier = TemplateChangesApplier.new(@comparison)
+
+    result = applier.send(:convert_category_to_unraid_format, community_category)
+
+    assert_equal "Tools:Utilities", result
+  end
+
+  test "should convert complex community categories to UnRAID format" do
+    community_category = "MediaApp-Video-Other"
+    applier = TemplateChangesApplier.new(@comparison)
+
+    result = applier.send(:convert_category_to_unraid_format, community_category)
+
+    assert_equal "MediaApp:Video:Other", result
+  end
+
+  test "should handle empty and nil categories in conversion" do
+    applier = TemplateChangesApplier.new(@comparison)
+
+    assert_nil applier.send(:convert_category_to_unraid_format, nil)
+    assert_equal "", applier.send(:convert_category_to_unraid_format, "")
+    assert_equal "  ", applier.send(:convert_category_to_unraid_format, "  ")
+  end
+
+  test "should apply category changes with proper UnRAID format conversion" do
+    xml_with_category = @local_xml.gsub(
+      "<Network>bridge</Network>",
+      "<Network>bridge</Network>\n  <Category>Backup:</Category>",
+    )
+    File.write(@template_file, xml_with_category)
+    @local_template.xml_content = xml_with_category
+    @local_template.category = "Backup:"
+
+    @comparison.update!(
+      differences: {
+        "category" => {
+          "type" => "basic_field",
+          "local" => "Backup:",
+          "community" => "Downloaders",
+          "field_name" => "Category",
+        },
+      },
+      user_choices: {
+        "category" => "community",
+      },
+    )
+
+    @applier.apply!
+
+    updated_content = File.read(@template_file)
+
+    assert_includes updated_content, "<Category>Downloaders:</Category>"
+  end
+
+  test "should use manual edits when available for basic fields" do
+    @comparison.update!(
+      status: "reviewed",
+      user_choices: {
+        "network" => "community",
+        "webui" => "community",
+      },
+      manual_edits: {
+        "network" => "custom_network",
+        "webui" => "http://[IP]:[PORT:8300]/custom",
+      },
+    )
+
+    applier = TemplateChangesApplier.new(@comparison)
+
+    assert applier.apply!
+
+    @local_template.reload
+
+    assert_equal "custom_network", @local_template.network
+    assert_equal "http://[IP]:[PORT:8300]/custom", @local_template.webui
+
+    # Check that local template file was updated with manual edits
+    updated_content = File.read(@template_file)
+
+    assert_includes updated_content, "<Network>custom_network</Network>"
+    assert_includes updated_content, "<WebUI>http://[IP]:[PORT:8300]/custom</WebUI>"
+  end
+
+  test "should use manual edits for config field changes" do
+    @comparison.update!(
+      differences: {
+        "config_WebUI" => {
+          "type" => "config",
+          "config_name" => "WebUI",
+          "field_differences" => {
+            "description" => {
+              "local" => "WebUI port",
+              "community" => "Web interface port",
+            },
+          },
+        },
+      },
+      user_choices: {
+        "config_WebUI_description" => "community",
+      },
+      manual_edits: {
+        "config_WebUI_description" => "Custom web interface port",
+      },
+    )
+
+    applier = TemplateChangesApplier.new(@comparison)
+    updated_xml = applier.send(:generate_updated_xml)
+
+    assert_includes updated_xml, 'Description="Custom web interface port"'
+  end
 end

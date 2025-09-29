@@ -37,3 +37,8 @@ en:
 
   templates:
     sync_started: "Template sync started in background"
+    community_matching_updated: "Community Applications sync settings updated. Sync in progress..."
+    community_matching_failed: "Failed to update template sync settings."
+
+  sync_job_runs:
+    not_found: "Sync job not found."

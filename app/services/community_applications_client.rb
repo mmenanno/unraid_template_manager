@@ -28,18 +28,51 @@ class CommunityApplicationsClient
   def find_template_by_repository(repository)
     feed_data = fetch_feed
 
-    # Search through applications to find matching repository
-    feed_data["applications"]&.find do |app|
-      normalize_repository(app["Repository"]) == normalize_repository(repository)
+    return unless feed_data["applist"]
+
+    normalized_search = normalize_repository(repository)
+
+    # Find all matching templates
+    matches = feed_data["applist"].select do |app|
+      normalize_repository(app["Repository"]) == normalized_search
     end
+
+    return matches.first if matches.size == 1
+
+    # If multiple matches, prefer the one with exact name match or official status
+    if matches.size > 1
+      # First, try to find a name that closely matches the repository
+      # For "mongo" repository, prefer "MongoDB" over "Gathio-MongoDB"
+      exact_match = matches.find { |app| app["Name"]&.downcase == normalized_search }
+      return exact_match if exact_match
+
+      # Look for names that start with the repository name
+      starts_with_match = matches.find { |app| app["Name"]&.downcase&.start_with?(normalized_search) }
+      return starts_with_match if starts_with_match
+
+      # Then prefer official templates (marked with "1" in Official field)
+      official_matches = matches.select { |app| app["Official"] == "1" }
+      if official_matches.size == 1
+        return official_matches.first
+      elsif official_matches.size > 1
+        # Among official matches, prefer the one with the shortest/simplest name
+        return official_matches.min_by { |app| app["Name"]&.length || Float::INFINITY }
+      end
+
+      # Finally, prefer templates without additional suffixes in the name
+      simple_match = matches.min_by { |app| app["Name"]&.length || Float::INFINITY }
+      return simple_match
+    end
+
+    nil
   end
 
   def search_templates(query)
     feed_data = fetch_feed
 
-    return [] unless feed_data["applications"]
+    return [] unless feed_data["applist"]
 
-    feed_data["applications"].select do |app|
+    feed_data["applist"].select do |app|
       matches_search_query?(app, query.downcase)
     end
   end

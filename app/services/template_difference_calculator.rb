@@ -28,8 +28,16 @@ class TemplateDifferenceCalculator
     basic_fields = ["name", "network", "category", "banner", "webui", "description", "template_version"]
 
     basic_fields.each do |field|
-      local_value = normalize_value(@local_template.send(field))
-      community_value = normalize_value(@community_template.send(field))
+      local_raw = @local_template.send(field)
+      community_raw = @community_template.send(field)
+
+      # Skip normalization if values are exactly the same
+      if local_raw == community_raw
+        next
+      end
+
+      local_value = normalize_field_value(local_raw, field)
+      community_value = normalize_field_value(community_raw, field)
 
       next if local_value == community_value
 
@@ -91,7 +99,7 @@ class TemplateDifferenceCalculator
 
   def compare_config_elements(local_config, community_config)
     field_differences = {}
-    config_fields = ["target", "default_value", "mode", "description", "required", "display"]
+    config_fields = ["target", "default_value", "actual_value", "mode", "description", "required", "display"]
 
     config_fields.each do |field|
       local_value = normalize_value(local_config[field.to_sym])
@@ -117,11 +125,22 @@ class TemplateDifferenceCalculator
         name = config_node["Name"]
         next unless name
 
+        # Extract actual value from element content
+        actual_value = config_node.text&.strip
+        default_value = config_node["Default"]
+
+        # For community templates, if no actual value is set but there's a default,
+        # use the default as the actual value (since that's what would be used)
+        if actual_value.blank? && default_value.present? && template.community?
+          actual_value = default_value
+        end
+
         configs[name] = {
           name: name,
           config_type: config_node["Type"],
           target: config_node["Target"],
-          default_value: config_node["Default"],
+          default_value: default_value,
+          actual_value: actual_value,
           mode: config_node["Mode"],
           description: config_node["Description"],
           required: config_node["Required"] == "true",
@@ -135,11 +154,45 @@ class TemplateDifferenceCalculator
     configs
   end
 
+  def normalize_field_value(value, field_name)
+    return if value.blank?
+
+    normalized = normalize_value(value)
+    return if normalized.nil?
+
+    case field_name
+    when "category"
+      normalize_category(normalized)
+    else
+      normalized
+    end
+  end
+
   def normalize_value(value)
     return if value.blank?
 
     # Normalize whitespace and empty strings
     normalized = value.to_s.strip
+    normalized.empty? ? nil : normalized
+  end
+
+  def normalize_category(category)
+    return if category.blank?
+
+    # Remove any trailing content after the main category
+    # e.g., "Tools:Utilities spotlight:" -> "Tools:Utilities"
+    # e.g., "Downloaders: MediaApp:Video" -> "Downloaders:"
+    normalized = category.split(/\s+/).first
+
+    # Convert UnRAID format (colon-separated) to Community format (hyphen-separated)
+    # e.g., "Tools:Utilities" -> "Tools-Utilities"
+    #       "MediaApp:Other" -> "MediaApp-Other"
+    #       "Downloaders:" -> "Downloaders"
+    normalized = normalized.tr(":", "-")
+
+    # Remove any trailing separators (this handles both : and - from the conversion)
+    normalized = normalized.gsub(/[-:]+$/, "")
+
     normalized.empty? ? nil : normalized
   end
 end

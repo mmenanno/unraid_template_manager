@@ -1,0 +1,93 @@
+<div class="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+  <div class="px-4 py-5 sm:px-6">
+    <h3 class="text-lg leading-6 font-medium text-white">Recent Sync Jobs</h3>
+    <p class="mt-1 max-w-2xl text-sm text-gray-400">History of template synchronization jobs</p>
+  </div>
+
+  <% if recent_jobs.any? %>
+    <ul class="divide-y divide-gray-700">
+      <% recent_jobs.each do |job| %>
+        <li class="px-4 py-4 sm:px-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <% if job.running? %>
+                  <svg class="h-6 w-6 text-yellow-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                <% elsif job.completed? %>
+                  <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                <% else %>
+                  <svg class="h-6 w-6 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                <% end %>
+              </div>
+              <div class="ml-4">
+                <div class="flex items-center">
+                  <p class="text-sm font-medium text-white"><%= job.job_type.humanize %></p>
+                  <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= if job.running?
+                                                                                                                  "bg-yellow-100 text-yellow-800"
+                                                                                                                else
+                                                                                                                  job.completed? ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                                                                                                end %>">
+                    <%= job.status.humanize %>
+                  </span>
+                </div>
+                <p class="text-sm text-gray-400">
+                  Started <%= job.started_at.strftime("%B %d, %Y at %I:%M %p") %>
+                  <% if job.completed_at %>
+                    • Completed in <%= job.duration_text %>
+                  <% end %>
+                </p>
+                <% if job.completed? && job.parsed_results.any? %>
+                  <div class="text-xs text-gray-400 mt-1">
+                    <% results = job.parsed_results %>
+                    <% if results["created"] && results["created"] > 0 %>
+                      <span class="text-green-400"><%= results["created"] %> created</span>
+                    <% end %>
+                    <% if results["updated"] && results["updated"] > 0 %>
+                      <span class="text-blue-400 ml-2"><%= results["updated"] %> updated</span>
+                    <% end %>
+                    <% if results["errors"] && results["errors"] > 0 %>
+                      <span class="text-red-400 ml-2"><%= results["errors"] %> errors</span>
+                    <% end %>
+                    <% if results["removed"] && results["removed"] > 0 %>
+                      <span class="text-orange-400 ml-2"><%= results["removed"] %> removed</span>
+                    <% end %>
+                    <% if results["error_details"]&.any? %>
+                      <span class="text-red-400 ml-2">(<%= results["error_details"].size %> specific errors)</span>
+                    <% end %>
+                  </div>
+                <% end %>
+                <% if job.failed? && job.error_message.present? %>
+                  <div class="text-xs text-red-400 mt-1">
+                    Error: <%= job.error_message %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <div class="flex items-center text-sm text-gray-400">
+              <%= link_to sync_job_run_path(job), class: "text-blue-400 hover:text-blue-300" do %>
+                View Details
+                <svg class="ml-1 h-4 w-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              <% end %>
+            </div>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-white">No sync jobs found</h3>
+      <p class="mt-1 text-sm text-gray-400">Start a sync to see job status here.</p>
+    </div>
+  <% end %>
+</div>

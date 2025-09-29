@@ -15,7 +15,7 @@ Rails.application.routes.draw do
   root "templates#index"
 
   # Templates and comparisons
-  resources :templates, only: [:index, :show] do
+  resources :templates, only: [:index, :show, :update] do
     collection do
       post :sync
     end
@@ -24,6 +24,9 @@ Rails.application.routes.draw do
   resources :template_comparisons, only: [:index, :show, :update] do
     member do
       patch :apply
+      get :preview_diff
     end
   end
+
+  resources :sync_job_runs, only: [:index, :show]
 end

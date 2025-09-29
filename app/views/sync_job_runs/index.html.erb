@@ -1,0 +1,70 @@
+<div class="space-y-6"
+     data-controller="auto-refresh"
+     data-auto-refresh-url-value="<%= sync_job_runs_path %>"
+     data-auto-refresh-interval-value="10000"
+     data-auto-refresh-enabled-value="<%= @running_jobs.any? %>">
+  <!-- Header -->
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-white">Sync Job Status</h1>
+      <p class="mt-2 text-gray-400">Monitor template synchronization jobs and their results</p>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button type="button"
+              data-action="click->auto-refresh#manualRefresh"
+              class="inline-flex items-center px-3 py-2 border border-gray-600 text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Refresh
+      </button>
+      <%= button_to sync_templates_path, method: :post, params: { redirect_to: sync_job_runs_path }, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" do %>
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Start New Sync
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Running Jobs -->
+  <div id="running_jobs">
+    <%= render "running_jobs", running_jobs: @running_jobs %>
+  </div>
+
+  <!-- Failed Jobs -->
+  <% if @failed_jobs.any? %>
+    <div class="bg-red-900 border border-red-700 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-sm font-medium text-red-200">Recent Failed Jobs</h3>
+          <div class="mt-2 text-sm text-red-100">
+            <ul class="space-y-2">
+              <% @failed_jobs.each do |job| %>
+                <li class="border border-red-800 rounded p-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium"><%= job.job_type.humanize %></span>
+                    <span class="text-red-300"><%= job.started_at.strftime("%m/%d %H:%M") %></span>
+                  </div>
+                  <div class="text-xs text-red-200 mt-1">
+                    Error: <%= job.error_message %>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Recent Job History -->
+  <div id="job_history">
+    <%= render "job_history", recent_jobs: @recent_jobs %>
+  </div>
+</div>

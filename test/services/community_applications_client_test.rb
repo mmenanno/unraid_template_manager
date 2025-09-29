@@ -6,7 +6,7 @@ class CommunityApplicationsClientTest < ActiveSupport::TestCase
   def setup
     @client = CommunityApplicationsClient.new
     @sample_feed = {
-      "applications" => [
+      "applist" => [
         {
           "Name" => "duplicati",
           "Repository" => "lscr.io/linuxserver/duplicati:latest",
@@ -29,6 +29,26 @@ class CommunityApplicationsClientTest < ActiveSupport::TestCase
           "Overview" => "Plex Media Server",
           "Date" => "1640995300",
         },
+        {
+          "Name" => "MongoDB",
+          "Repository" => "mongo",
+          "Network" => "bridge",
+          "Category" => "Network:Other",
+          "Icon" => "https://example.com/mongo.png",
+          "Overview" => "MongoDB database",
+          "Date" => "1640995400",
+          "Official" => "1",
+        },
+        {
+          "Name" => "Gathio-MongoDB",
+          "Repository" => "mongo:latest",
+          "Network" => "bridge",
+          "Category" => "Network:Other",
+          "Icon" => "https://example.com/gathio-mongo.png",
+          "Overview" => "MongoDB for Gathio",
+          "Date" => "1640995500",
+          "Official" => "1",
+        },
       ],
     }.to_json
   end
@@ -38,8 +58,8 @@ class CommunityApplicationsClientTest < ActiveSupport::TestCase
 
     feed_data = @client.fetch_feed
 
-    assert_equal 2, feed_data["applications"].size
-    assert_equal "duplicati", feed_data["applications"].first["Name"]
+    assert_equal 4, feed_data["applist"].size
+    assert_equal "duplicati", feed_data["applist"].first["Name"]
   end
 
   test "should raise FeedUnavailableError on network error" do
@@ -84,6 +104,40 @@ class CommunityApplicationsClientTest < ActiveSupport::TestCase
     template_data = @client.find_template_by_repository("nonexistent/app")
 
     assert_nil template_data
+  end
+
+  test "should prefer main template over variants when multiple matches" do
+    stub_successful_feed_request
+
+    # Both MongoDB and Gathio-MongoDB have repository that normalizes to "mongo"
+    # Should prefer "MongoDB" because it starts with "mongo"
+    template_data = @client.find_template_by_repository("mongo")
+
+    refute_nil template_data
+    assert_equal "MongoDB", template_data["Name"]
+    assert_equal "mongo", template_data["Repository"]
+  end
+
+  test "should prefer template with shortest name when multiple official matches" do
+    stub_successful_feed_request
+
+    # Test the fallback logic for official templates
+    # Both MongoDB and Gathio-MongoDB are official, but MongoDB has shorter name
+    template_data = @client.find_template_by_repository("mongo:latest")
+
+    refute_nil template_data
+    # Should find MongoDB because it has shorter name among official matches
+    assert_equal "MongoDB", template_data["Name"]
+  end
+
+  test "should handle single match correctly" do
+    stub_successful_feed_request
+
+    # duplicati should be found normally as there's only one match
+    template_data = @client.find_template_by_repository("linuxserver/duplicati")
+
+    refute_nil template_data
+    assert_equal "duplicati", template_data["Name"]
   end
 
   test "should search templates by query" do

@@ -14,7 +14,7 @@ class UpdateTemplateComparisonsJob < ApplicationJob
       # Update all comparisons
       results = { updated: 0, created: 0, errors: 0 }
 
-      Template.local.active.find_each do |local_template|
+      Template.local.active.in_community.find_each do |local_template|
         community_template = local_template.matching_community_template
         next unless community_template
 
@@ -41,7 +41,7 @@ class UpdateTemplateComparisonsJob < ApplicationJob
   private
 
   def update_comparisons_for_template(template)
-    return unless template.local?
+    return unless template.local? && template.should_sync_with_community?
 
     community_template = template.matching_community_template
     return unless community_template

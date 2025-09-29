@@ -36,7 +36,7 @@
           <div class="ml-5 w-0 flex-1">
             <dl>
               <dt class="text-sm font-medium text-gray-400 truncate">Total Templates</dt>
-              <dd class="text-lg font-medium text-white"><%= @local_templates.count %></dd>
+              <dd class="text-lg font-medium text-white"><%= @filtered_templates_count %></dd>
             </dl>
           </div>
         </div>
@@ -54,7 +54,7 @@
           <div class="ml-5 w-0 flex-1">
             <dl>
               <dt class="text-sm font-medium text-gray-400 truncate">Pending Reviews</dt>
-              <dd class="text-lg font-medium text-white"><%= @pending_comparisons_count %></dd>
+              <dd class="text-lg font-medium text-white"><%= @filtered_pending_count %></dd>
             </dl>
           </div>
         </div>
@@ -72,7 +72,7 @@
           <div class="ml-5 w-0 flex-1">
             <dl>
               <dt class="text-sm font-medium text-gray-400 truncate">Up to Date</dt>
-              <dd class="text-lg font-medium text-white"><%= @local_templates.count - @pending_comparisons_count %></dd>
+              <dd class="text-lg font-medium text-white"><%= @filtered_up_to_date_count %></dd>
             </dl>
           </div>
         </div>
@@ -81,13 +81,287 @@
   </div>
 
   <!-- Templates list -->
-  <div class="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+  <div class="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700"
+       data-controller="template-filter">
     <div class="px-4 py-5 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium text-white">Local Templates</h3>
-      <p class="mt-1 max-w-2xl text-sm text-gray-400">Your UnRAID Docker application templates</p>
+      <div class="flex flex-col space-y-4">
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg leading-6 font-medium text-white">Local Templates</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-400">Your UnRAID Docker application templates</p>
+          </div>
+        </div>
+
+        <!-- Search and Filter Controls -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <!-- Search Input -->
+          <div class="flex-1">
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input data-template-filter-target="searchInput"
+                     data-action="input->template-filter#search"
+                     type="text"
+                     value="<%= @search_query %>"
+                     placeholder="Search templates by name, repository, or description..."
+                     autocomplete="off"
+                     class="block w-full pl-10 pr-10 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <% if @search_query.present? %>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button data-action="click->template-filter#clearSearch"
+                          type="button"
+                          class="text-gray-400 hover:text-white focus:outline-none">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-400">Filter:</span>
+              <div class="relative" data-controller="status-filter">
+                <button data-status-filter-target="button"
+                        data-action="click->status-filter#toggle"
+                        type="button"
+                        class="inline-flex items-center justify-between w-48 px-3 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                  <span data-status-filter-target="text">
+                    <% case @status_filter %>
+                    <% when "needs_review" %>
+                      <span class="flex items-center">
+                        <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                        Needs Review
+                      </span>
+                    <% when "ready_to_apply" %>
+                      <span class="flex items-center">
+                        <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                        Ready to Apply
+                      </span>
+                    <% when "up_to_date" %>
+                      <span class="flex items-center">
+                        <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                        Up to Date
+                      </span>
+                    <% when "not_in_community" %>
+                      <span class="flex items-center">
+                        <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                        Not in CA
+                      </span>
+                    <% when "no_comparison" %>
+                      <span class="flex items-center">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                        No Comparison
+                      </span>
+                    <% else %>All Templates
+                    <% end %>
+                  </span>
+                  <svg data-status-filter-target="chevron" class="w-4 h-4 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+
+                <div data-status-filter-target="menu"
+                     data-action="keydown->status-filter#navigateMenu"
+                     class="absolute right-0 z-10 mt-2 w-48 origin-top-right bg-gray-700 border border-gray-600 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden">
+                  <div class="py-1" role="menu">
+                    <a href="#"
+                       data-filter="all"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "all" %>"
+                       role="menuitem">
+                      <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                      </svg>
+                      All Templates
+                    </a>
+                    <a href="#"
+                       data-filter="needs_review"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "needs_review" %>"
+                       role="menuitem">
+                      <span class="w-4 h-4 mr-3 flex items-center justify-center">
+                        <span class="w-2 h-2 bg-orange-400 rounded-full"></span>
+                      </span>
+                      Needs Review
+                    </a>
+                    <a href="#"
+                       data-filter="ready_to_apply"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "ready_to_apply" %>"
+                       role="menuitem">
+                      <span class="w-4 h-4 mr-3 flex items-center justify-center">
+                        <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      </span>
+                      Ready to Apply
+                    </a>
+                    <a href="#"
+                       data-filter="up_to_date"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "up_to_date" %>"
+                       role="menuitem">
+                      <span class="w-4 h-4 mr-3 flex items-center justify-center">
+                        <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                      </span>
+                      Up to Date
+                    </a>
+                    <a href="#"
+                       data-filter="not_in_community"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "not_in_community" %>"
+                       role="menuitem">
+                      <span class="w-4 h-4 mr-3 flex items-center justify-center">
+                        <span class="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                      </span>
+                      Not in CA
+                    </a>
+                    <a href="#"
+                       data-filter="no_comparison"
+                       data-action="click->status-filter#selectOption"
+                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @status_filter == "no_comparison" %>"
+                       role="menuitem">
+                      <span class="w-4 h-4 mr-3 flex items-center justify-center">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                      </span>
+                      No Comparison
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sort Dropdown -->
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-400">Sort by:</span>
+              <div class="relative" data-controller="sort-dropdown">
+            <button data-sort-dropdown-target="button"
+                    data-action="click->sort-dropdown#toggle"
+                    type="button"
+                    class="inline-flex items-center justify-between w-48 px-3 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    aria-expanded="false"
+                    aria-haspopup="true">
+              <span data-sort-dropdown-target="text">
+                <% if @sort_by == 'name' && @sort_direction == 'asc' %>Name (A-Z)
+                <% elsif @sort_by == 'name' && @sort_direction == 'desc' %>Name (Z-A)
+                <% elsif @sort_by == 'repository' && @sort_direction == 'asc' %>Repository (A-Z)
+                <% elsif @sort_by == 'repository' && @sort_direction == 'desc' %>Repository (Z-A)
+                <% elsif @sort_by == 'updated' && @sort_direction == 'desc' %>Recently Updated
+                <% elsif @sort_by == 'updated' && @sort_direction == 'asc' %>Oldest Updated
+                <% else %>Name (A-Z)
+                <% end %>
+              </span>
+              <svg data-sort-dropdown-target="chevron" class="w-4 h-4 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+
+            <div data-sort-dropdown-target="menu"
+                 data-action="keydown->sort-dropdown#navigateMenu"
+                 class="absolute right-0 z-10 mt-2 w-48 origin-top-right bg-gray-700 border border-gray-600 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden">
+              <div class="py-1" role="menu">
+                <a href="#"
+                   data-sort="name-asc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "name" && @sort_direction == "asc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
+                  </svg>
+                  Name (A-Z)
+                </a>
+                <a href="#"
+                   data-sort="name-desc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "name" && @sort_direction == "desc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
+                  </svg>
+                  Name (Z-A)
+                </a>
+                <a href="#"
+                   data-sort="repository-asc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "repository" && @sort_direction == "asc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M3 20l4-4m0 0l4 4m-4-4v12"></path>
+                  </svg>
+                  Repository (A-Z)
+                </a>
+                <a href="#"
+                   data-sort="repository-desc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "repository" && @sort_direction == "desc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M11 16l4 4m0 0l4-4m-4 4V8"></path>
+                  </svg>
+                  Repository (Z-A)
+                </a>
+                <a href="#"
+                   data-sort="updated-desc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "updated" && @sort_direction == "desc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z M7 10l4-4m0 0l4 4m-4-4v12"></path>
+                  </svg>
+                  Recently Updated
+                </a>
+                <a href="#"
+                   data-sort="updated-asc"
+                   data-action="click->sort-dropdown#selectOption"
+                   class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white <%= "bg-gray-600 text-white" if @sort_by == "updated" && @sort_direction == "asc" %>"
+                   role="menuitem">
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z M17 14l4 4m0 0l4-4m-4 4V6"></path>
+                  </svg>
+                  Oldest Updated
+                </a>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Count -->
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-gray-400">
+            Showing <%= @filtered_templates_count %> templates
+            <% if @search_query.present? || @status_filter != "all" %>
+              (filtered)
+            <% end %>
+          </p>
+        </div>
+      </div>
     </div>
     <ul class="divide-y divide-gray-700">
       <% @local_templates.each do |template| %>
+<% template_status = if template.not_in_community?
+     "not_in_community"
+   elsif template.has_comparison?
+     comparison = template.latest_comparison
+     case comparison.status
+     when "pending"
+       "needs_review"
+     when "reviewed"
+       "ready_to_apply"
+     when "applied"
+       "up_to_date"
+     end
+   else
+     "no_comparison"
+   end %>
         <li>
           <%= link_to template_path(template), class: "block hover:bg-gray-700" do %>
             <div class="px-4 py-4 sm:px-6">
@@ -107,7 +381,11 @@
                   <div class="ml-4">
                     <div class="flex items-center">
                       <p class="text-sm font-medium text-blue-400 truncate"><%= template.name %></p>
-                      <% if template.has_comparison? %>
+                      <% if template.not_in_community? %>
+                        <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Not in CA
+                        </span>
+                      <% elsif template.has_comparison? %>
                         <% comparison = template.latest_comparison %>
                         <% if comparison.pending? %>
                           <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -125,6 +403,14 @@
                       <% end %>
                     </div>
                     <p class="text-sm text-gray-400 truncate"><%= template.repository %></p>
+                    <% if template.community_repository.present? %>
+                      <p class="text-xs text-blue-300">
+                        CA Repo: <%= template.community_repository %>
+                        <% if template.community_repository != template.repository %>
+                          <span class="text-orange-300">(manual override)</span>
+                        <% end %>
+                      </p>
+                    <% end %>
                     <% if template.description.present? %>
                       <p class="text-sm text-gray-400 truncate"><%= truncate(template.description, length: 100) %></p>
                     <% end %>
@@ -146,21 +432,41 @@
         </li>
       <% end %>
     </ul>
+
+    <!-- Empty state when no templates match filters or exist -->
     <% if @local_templates.empty? %>
       <div class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-white">No templates found</h3>
-        <p class="mt-1 text-sm text-gray-400">Get started by syncing your templates.</p>
-        <div class="mt-6">
-          <%= button_to sync_templates_path, method: :post, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" do %>
-            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Sync Templates
-          <% end %>
-        </div>
+        <% if @search_query.present? || @status_filter != "all" %>
+          <!-- Filtered empty state -->
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-white">No templates match your filters</h3>
+          <p class="mt-1 text-sm text-gray-400">Try adjusting your search or filter criteria.</p>
+          <div class="mt-6">
+            <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            <% end %>
+          </div>
+        <% else %>
+          <!-- No templates exist -->
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-white">No templates found</h3>
+          <p class="mt-1 text-sm text-gray-400">Get started by syncing your templates.</p>
+          <div class="mt-6">
+            <%= button_to sync_templates_path, method: :post, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Sync Templates
+            <% end %>
+          </div>
+        <% end %>
       </div>
     <% end %>
   </div>

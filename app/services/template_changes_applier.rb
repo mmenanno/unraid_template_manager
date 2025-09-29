@@ -113,7 +113,9 @@ class TemplateChangesApplier
       case diff["type"]
       when "basic_field"
         field_name = diff["field_name"].parameterize.underscore
-        @local_template.send("#{field_name}=", diff["community"])
+        # Use manual edit if available, otherwise use community value
+        value = @comparison.manual_edit_for_field(key) || diff["community"]
+        @local_template.send("#{field_name}=", value)
       when "config", "new_config"
         # XML configs will be handled in XML generation
         next
@@ -159,10 +161,14 @@ class TemplateChangesApplier
 
         field_element = doc.at(element_name)
         if field_element && choice == "community"
-          field_element.content = diff["community"] || ""
+          # Use manual edit if available, otherwise use community value
+          value = @comparison.manual_edit_for_field(key) || diff["community"] || ""
+          # Convert category back to UnRAID format (hyphen-separated to colon-separated)
+          value = convert_category_to_unraid_format(value) if key == "category"
+          field_element.content = value
         end
       when "config"
-        update_config_in_xml(doc, diff, choice)
+        update_config_in_xml(doc, diff, key)
       when "new_config"
         add_config_to_xml(doc, diff) if choice == "community"
       when "removed_config"
@@ -173,25 +179,47 @@ class TemplateChangesApplier
     doc.to_xml
   end
 
-  def update_config_in_xml(doc, diff, choice)
+  def update_config_in_xml(doc, diff, config_key)
     config_name = diff["config_name"]
     config_node = doc.xpath("//Config[@Name='#{config_name}']").first
+    return unless config_node
 
-    if config_node && choice == "community"
-      source_config = diff["community"]
+    # Check if there's a general choice for this config
+    general_choice = @comparison.user_choices[config_key]
 
-      # Update config attributes to community values
-      ["Type", "Target", "Default", "Mode", "Description", "Required", "Display"].each do |attr|
-        attr_key = attr.downcase
-        attr_key = "config_type" if attr == "Type"
-        attr_key = "default_value" if attr == "Default"
+    # Handle field-level choices for this config
+    diff["field_differences"].each do |field, change|
+      field_choice_key = "#{config_key}_#{field}"
+      field_choice = @comparison.user_choices[field_choice_key]
 
-        if source_config[attr_key]
-          config_node[attr] = source_config[attr_key].to_s
-        end
+      # Use field-specific choice if available, otherwise fall back to general choice
+      should_apply_community = (field_choice == "community") || (field_choice.nil? && general_choice == "community")
+
+      next unless should_apply_community
+
+      # Get the value to use: manual edit if available, otherwise community value
+      field_key = "#{config_key}_#{field}"
+      value_to_use = @comparison.manual_edit_for_field(field_key) || change["community"]
+
+      case field
+      when "target"
+        config_node["Target"] = value_to_use.to_s if value_to_use
+      when "default_value"
+        config_node["Default"] = value_to_use.to_s if value_to_use
+      when "actual_value"
+        config_node.content = value_to_use.to_s if value_to_use
+      when "mode"
+        config_node["Mode"] = value_to_use.to_s if value_to_use
+      when "description"
+        config_node["Description"] = value_to_use.to_s if value_to_use
+      when "required"
+        config_node["Required"] = value_to_use.to_s unless value_to_use.nil?
+      when "display"
+        config_node["Display"] = value_to_use.to_s if value_to_use
+      when "config_type"
+        config_node["Type"] = value_to_use.to_s if value_to_use
       end
     end
-    # If choice is "local", we keep the existing config as-is (no changes)
   end
 
   def add_config_to_xml(doc, diff)
@@ -200,14 +228,20 @@ class TemplateChangesApplier
 
     config_node = Nokogiri::XML::Node.new("Config", doc)
 
+    # Find the config key for this new config to check for manual edits
+    config_key = diff.key?("config_name") ? diff["config_name"] : config["name"]
+
     config_node["Name"] = config["name"].to_s if config["name"]
-    config_node["Type"] = config["config_type"].to_s if config["config_type"]
-    config_node["Target"] = config["target"].to_s if config["target"]
-    config_node["Default"] = config["default_value"].to_s if config["default_value"]
-    config_node["Mode"] = config["mode"].to_s if config["mode"]
-    config_node["Description"] = config["description"].to_s if config["description"]
-    config_node["Required"] = config["required"].to_s unless config["required"].nil?
-    config_node["Display"] = config["display"].to_s if config["display"]
+    config_node["Type"] = (@comparison.manual_edit_for_field("#{config_key}_config_type") || config["config_type"]).to_s if config["config_type"]
+    config_node["Target"] = (@comparison.manual_edit_for_field("#{config_key}_target") || config["target"]).to_s if config["target"]
+    config_node["Default"] = (@comparison.manual_edit_for_field("#{config_key}_default_value") || config["default_value"]).to_s if config["default_value"]
+    config_node["Mode"] = (@comparison.manual_edit_for_field("#{config_key}_mode") || config["mode"]).to_s if config["mode"]
+    config_node["Description"] = (@comparison.manual_edit_for_field("#{config_key}_description") || config["description"]).to_s if config["description"]
+
+    required_value = @comparison.manual_edit_for_field("#{config_key}_required") || config["required"]
+    config_node["Required"] = required_value.to_s unless required_value.nil?
+
+    config_node["Display"] = (@comparison.manual_edit_for_field("#{config_key}_display") || config["display"]).to_s if config["display"]
 
     container.add_child(config_node)
   end
@@ -238,5 +272,22 @@ class TemplateChangesApplier
     end
 
     preview
+  end
+
+  def convert_category_to_unraid_format(category)
+    return category if category.blank?
+
+    # Convert community format (hyphen-separated) back to UnRAID format (colon-separated)
+    # e.g., "Tools-Utilities" -> "Tools:Utilities"
+    #       "MediaApp-Other" -> "MediaApp:Other"
+    unraid_category = category.tr("-", ":")
+
+    # For single-word categories (like "Downloaders"), UnRAID typically uses a trailing colon
+    # Multi-word categories (like "Tools:Utilities") don't need the trailing colon
+    if unraid_category.count(":") == 0
+      unraid_category + ":"
+    else
+      unraid_category
+    end
   end
 end

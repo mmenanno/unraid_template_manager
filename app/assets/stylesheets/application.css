@@ -8,3 +8,53 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+/* Diff styling for Diffy gem output */
+.diff-container {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.diff-container .diff {
+  color: #e5e7eb;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.diff-container .diff ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.diff-container .diff li {
+  margin: 0;
+  padding: 2px 8px;
+  border-left: 3px solid transparent;
+  line-height: 1.3;
+  display: block;
+}
+
+.diff-container .del {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+  text-decoration: none;
+  border-left-color: #dc2626;
+}
+
+.diff-container .ins {
+  background-color: #14532d;
+  color: #86efac;
+  text-decoration: none;
+  border-left-color: #16a34a;
+}
+
+.diff-container .unchanged {
+  color: #9ca3af;
+  background-color: transparent;
+}

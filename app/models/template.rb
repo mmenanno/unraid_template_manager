@@ -19,11 +19,17 @@ class Template < ApplicationRecord
   validates :status, presence: true, inclusion: { in: ["active", "inactive"] }
   validates :source, presence: true, inclusion: { in: ["local", "community"] }
   validates :repository, uniqueness: { scope: :source }
+  validates :not_in_community, inclusion: { in: [true, false] }
 
   scope :local, -> { where(source: "local") }
   scope :community, -> { where(source: "community") }
   scope :active, -> { where(status: "active") }
+  scope :in_community, -> { where(not_in_community: false) }
+  scope :not_in_community, -> { where(not_in_community: true) }
   scope :with_pending_comparisons, -> { joins(:local_comparisons).where(template_comparisons: { status: "pending" }) }
+  scope :with_reviewed_comparisons, -> { joins(:local_comparisons).where(template_comparisons: { status: "reviewed" }) }
+  scope :with_applied_comparisons, -> { joins(:local_comparisons).where(template_comparisons: { status: "applied" }) }
+  scope :without_comparisons, -> { left_joins(:local_comparisons).where(template_comparisons: { id: nil }) }
 
   def local?
     source == "local"
@@ -31,6 +37,10 @@ class Template < ApplicationRecord
 
   def community?
     source == "community"
+  end
+
+  def should_sync_with_community?
+    local? && !not_in_community?
   end
 
   def has_comparison?
@@ -46,7 +56,7 @@ class Template < ApplicationRecord
   end
 
   def find_or_create_comparison_with(community_template)
-    return unless local? && community_template.community?
+    return unless local? && community_template.community? && should_sync_with_community?
 
     comparison = TemplateComparison.find_or_initialize_by(
       local_template: self,
@@ -102,11 +112,17 @@ class Template < ApplicationRecord
       # Use the existing extraction method
       configs_data = extract_configs_from_xml
 
-      # Filter out invalid configs and bulk create
+      # Filter out invalid configs and deduplicate by name (keep last occurrence)
       valid_configs = configs_data.select { |config| config[:name].present? }
-      template_configs.create!(valid_configs) if valid_configs.any?
+      deduplicated_configs = valid_configs.reverse.uniq { |config| config[:name] }.reverse
 
-      Rails.logger.info("Synced #{valid_configs.size} configs for template: #{name}")
+      if deduplicated_configs.size < valid_configs.size
+        Rails.logger.warn("Removed #{valid_configs.size - deduplicated_configs.size} duplicate configs for template: #{name}")
+      end
+
+      template_configs.create!(deduplicated_configs) if deduplicated_configs.any?
+
+      Rails.logger.info("Synced #{deduplicated_configs.size} configs for template: #{name}")
     rescue Nokogiri::XML::SyntaxError => e
       Rails.logger.error("Failed to parse XML for template #{name}: #{e.message}")
       raise

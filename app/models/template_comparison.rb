@@ -39,6 +39,21 @@ class TemplateComparison < ApplicationRecord
     self.user_choices[field_name] = choice
   end
 
+  def manual_edit_for_field(field_name)
+    return if manual_edits.blank?
+
+    manual_edits[field_name]
+  end
+
+  def set_manual_edit(field_name, value)
+    self.manual_edits ||= {}
+    self.manual_edits[field_name] = value
+  end
+
+  def has_manual_edit?(field_name)
+    manual_edits.present? && manual_edits[field_name].present?
+  end
+
   def calculate_differences!
     differ = TemplateDifferenceCalculator.new(local_template, community_template)
     self.differences = differ.calculate
@@ -56,6 +71,13 @@ class TemplateComparison < ApplicationRecord
     else
       false
     end
+  end
+
+  def apply_changes!
+    return false unless reviewed?
+
+    applier = TemplateChangesApplier.new(self)
+    applier.apply!
   end
 
   def preview_changes

@@ -4,57 +4,80 @@ class SyncCommunityTemplatesJob < ApplicationJob
   queue_as :default
 
   def perform
-    Rails.logger.info("Starting community template sync")
+    job_run = SyncJobRun.create_for_job("community_sync")
 
-    client = CommunityApplicationsClient.new
-    results = { created: 0, updated: 0, errors: 0 }
+    begin
+      Rails.logger.info("Starting community template sync")
 
-    # Get all local templates that need community counterparts
-    local_templates = Template.local.active
+      client = CommunityApplicationsClient.new
+      results = { created: 0, updated: 0, errors: 0, error_details: [] }
 
-    local_templates.find_each do |local_template|
-      # Find matching community template
-      community_data = client.find_template_by_repository(local_template.repository)
+      # Get all local templates that need community counterparts (excluding those marked as not in community)
+      local_templates = Template.local.active.in_community
 
-      if community_data
-        community_template = sync_community_template(community_data)
+      local_templates.find_each do |local_template|
+        # Use manual repository mapping if available, otherwise use template repository
+        search_repository = local_template.community_repository.presence || local_template.repository
 
-        if community_template.previously_new_record?
-          results[:created] += 1
+        # Find matching community template
+        community_data = client.find_template_by_repository(search_repository)
+
+        if community_data
+          community_template = sync_community_template(community_data)
+
+          if community_template.previously_new_record?
+            results[:created] += 1
+          else
+            results[:updated] += 1
+          end
+
+          # Create or update comparison
+          local_template.find_or_create_comparison_with(community_template)
         else
-          results[:updated] += 1
+          Rails.logger.debug { "No community template found for: #{search_repository} (local: #{local_template.repository})" }
+          results[:error_details] << {
+            template: local_template.name,
+            repository: local_template.repository,
+            search_repository: search_repository,
+            error: "No matching Community Applications template found",
+          }
         end
-
-        # Create or update comparison
-        local_template.find_or_create_comparison_with(community_template)
-      else
-        Rails.logger.debug { "No community template found for: #{local_template.repository}" }
+      rescue => e
+        Rails.logger.error("Failed to sync community template for #{local_template.repository}: #{e.message}")
+        results[:errors] += 1
+        results[:error_details] << {
+          template: local_template.name,
+          repository: local_template.repository,
+          search_repository: search_repository,
+          error: e.message,
+        }
       end
+
+      Rails.logger.info("Community template sync completed: #{results[:created]} created, #{results[:updated]} updated, #{results[:errors]} errors")
+
+      job_run.complete!(results)
+      results
     rescue => e
-      Rails.logger.error("Failed to sync community template for #{local_template.repository}: #{e.message}")
-      results[:errors] += 1
+      Rails.logger.error("Community template sync failed: #{e.message}")
+      job_run.fail!(e.message)
+      raise
     end
-
-    Rails.logger.info("Community template sync completed: #{results[:created]} created, #{results[:updated]} updated, #{results[:errors]} errors")
-
-    results
-  rescue => e
-    Rails.logger.error("Community template sync failed: #{e.message}")
-    raise
   end
 
   private
 
   def sync_community_template(community_data)
+    xml_content = fetch_template_xml(community_data["TemplateURL"])
+
     template_data = {
       name: community_data["Name"],
       repository: community_data["Repository"],
       network: community_data["Network"],
-      category: community_data["Category"],
+      category: community_data["CategoryList"]&.first,
       banner: community_data["Icon"],
-      webui: community_data["WebUI"],
+      webui: extract_webui_from_xml(xml_content),
       description: community_data["Overview"],
-      xml_content: community_data["template"],
+      xml_content: xml_content,
       source: "community",
       last_updated_at: Time.current,
     }
@@ -69,5 +92,33 @@ class SyncCommunityTemplatesJob < ApplicationJob
     template.sync_configs_from_xml!
 
     template
+  end
+
+  def fetch_template_xml(template_url)
+    return if template_url.blank?
+
+    Rails.logger.debug { "Fetching template XML from: #{template_url}" }
+
+    response = Faraday.get(template_url)
+
+    if response.success?
+      response.body
+    else
+      Rails.logger.warn("Failed to fetch template XML from #{template_url}: #{response.status}")
+      nil
+    end
+  rescue => e
+    Rails.logger.error("Error fetching template XML from #{template_url}: #{e.message}")
+    nil
+  end
+
+  def extract_webui_from_xml(xml_content)
+    return if xml_content.blank?
+
+    doc = Nokogiri::XML(xml_content)
+    doc.at("WebUI")&.text&.strip
+  rescue => e
+    Rails.logger.debug { "Could not extract WebUI from XML: #{e.message}" }
+    nil
   end
 end

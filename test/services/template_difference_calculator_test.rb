@@ -131,18 +131,45 @@ class TemplateDifferenceCalculatorTest < ActiveSupport::TestCase
   end
 
   test "should handle identical templates" do
-    identical_template = Template.create!(
+    # For truly identical templates, we need to create a local template that
+    # has actual values set to match what the calculator expects for community templates
+    local_xml_with_values = <<~XML
+      <?xml version="1.0"?>
+      <Container version="2">
+        <Name>duplicati</Name>
+        <Repository>lscr.io/linuxserver/duplicati:latest</Repository>
+        <Network>bridge</Network>
+        <Category>Backup:</Category>
+        <WebUI>http://[IP]:[PORT:8200]</WebUI>
+        <Overview>Duplicati is a backup client</Overview>
+        <Config Name="WebUI" Target="8200" Default="8200" Mode="tcp" Description="WebUI port" Type="Port" Required="true" Display="always">8200</Config>
+        <Config Name="Appdata" Target="/config" Default="/mnt/user/appdata/duplicati" Mode="rw" Description="Config files" Type="Path" Required="true" Display="always">/mnt/user/appdata/duplicati</Config>
+      </Container>
+    XML
+
+    local_template_with_values = Template.create!(
+      name: "duplicati",
+      repository: "lscr.io/linuxserver/duplicati:latest-local-with-values",
+      network: "bridge",
+      category: "Backup:",
+      webui: "http://[IP]:[PORT:8200]",
+      description: "Duplicati is a backup client",
+      xml_content: local_xml_with_values,
+      source: "local",
+    )
+
+    community_template_identical = Template.create!(
       name: @local_template.name,
       repository: "lscr.io/linuxserver/duplicati:latest-identical",
       network: @local_template.network,
       category: @local_template.category,
       webui: @local_template.webui,
       description: @local_template.description,
-      xml_content: @local_template.xml_content,
+      xml_content: local_xml_with_values,
       source: "community",
     )
 
-    calculator = TemplateDifferenceCalculator.new(@local_template, identical_template)
+    calculator = TemplateDifferenceCalculator.new(local_template_with_values, community_template_identical)
     differences = calculator.calculate
 
     assert_empty differences
@@ -179,5 +206,134 @@ class TemplateDifferenceCalculatorTest < ActiveSupport::TestCase
 
       assert_kind_of Hash, differences
     end
+  end
+
+  test "should normalize single-word categories with trailing colons" do
+    local_template = @local_template.dup
+    local_template.category = "Downloaders:"
+
+    community_template = @community_template.dup
+    community_template.category = "Downloaders"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should normalize multi-part categories with colon-to-hyphen conversion" do
+    local_template = @local_template.dup
+    local_template.category = "MediaApp:Other"
+
+    community_template = @community_template.dup
+    community_template.category = "MediaApp-Other"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should normalize categories with trailing content" do
+    local_template = @local_template.dup
+    local_template.category = "Tools:Utilities spotlight:"
+
+    community_template = @community_template.dup
+    community_template.category = "Tools-Utilities"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should normalize complex multi-category strings" do
+    local_template = @local_template.dup
+    local_template.category = "Downloaders: MediaApp:Video Tools:Utilities"
+
+    community_template = @community_template.dup
+    community_template.category = "Downloaders"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should detect legitimate category differences" do
+    local_template = @local_template.dup
+    local_template.category = "Tools:Utilities"
+
+    community_template = @community_template.dup
+    community_template.category = "MediaApp-Video"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    assert_includes differences, "category"
+    assert_equal "Tools-Utilities", differences["category"]["local"]
+    assert_equal "MediaApp-Video", differences["category"]["community"]
+  end
+
+  test "should handle empty and nil categories" do
+    local_template = @local_template.dup
+    local_template.category = ""
+
+    community_template = @community_template.dup
+    community_template.category = nil
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should skip normalization for exact category matches" do
+    local_template = @local_template.dup
+    local_template.category = "Downloaders:"
+
+    community_template = @community_template.dup
+    community_template.category = "Downloaders:"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+  end
+
+  test "should skip normalization for any exact field matches" do
+    local_template = @local_template.dup
+    local_template.category = "Tools:Utilities"
+    local_template.webui = "http://[IP]:[PORT:8200]"
+    local_template.description = "Same description"
+
+    community_template = @community_template.dup
+    community_template.category = "Tools:Utilities"
+    community_template.webui = "http://[IP]:[PORT:8300]"
+    community_template.description = "Same description"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+    refute_includes differences, "description"
+
+    assert_includes differences, "webui"
+  end
+
+  test "should preserve original values when no normalization is needed" do
+    local_template = @local_template.dup
+    local_template.category = "Custom:Category:With:Colons"
+
+    community_template = @community_template.dup
+    community_template.category = "Custom:Category:With:Colons"
+
+    calculator = TemplateDifferenceCalculator.new(local_template, community_template)
+    differences = calculator.calculate
+
+    refute_includes differences, "category"
+
+    assert_equal "Custom:Category:With:Colons", local_template.category
+    assert_equal "Custom:Category:With:Colons", community_template.category
   end
 end
