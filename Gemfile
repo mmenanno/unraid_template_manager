@@ -5,7 +5,7 @@ source "https://rubygems.org"
 ruby "3.4.5"
 
 # Core framework and platform integrations
-gem "rails", "~> 8.0.3"
+gem "rails", "~> 8.1.0"
 gem "propshaft"
 gem "sqlite3", ">= 2.1"
 gem "puma", ">= 5.0"
