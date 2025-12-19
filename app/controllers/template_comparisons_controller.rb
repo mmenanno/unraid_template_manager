@@ -27,7 +27,7 @@ class TemplateComparisonsController < ApplicationController
     else
       @differences = @comparison.differences || {}
       @user_choices = @comparison.user_choices || {}
-      render(:show, status: :unprocessable_entity)
+      render(:show, status: :unprocessable_content)
     end
   end
 

@@ -169,7 +169,7 @@ GEM
     matrix (0.4.3)
     mini_mime (1.1.5)
     minitest (5.26.2)
-    mocha (2.8.2)
+    mocha (3.0.1)
       ruby2_keywords (>= 0.0.5)
     msgpack (1.8.0)
     net-http (0.6.0)
@@ -445,7 +445,7 @@ DEPENDENCIES
   webmock
 
 RUBY VERSION
-   ruby 3.4.5p51
+  ruby 3.4.5p51
 
 BUNDLED WITH
-   2.7.2
+  4.0.2
