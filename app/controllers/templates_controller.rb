@@ -59,18 +59,9 @@ class TemplatesController < ApplicationController
     @filtered_up_to_date_count = 0
 
     @local_templates.each do |template|
-      if template.not_in_community?
-        # Templates not in community are considered "up to date" for stats purposes
-        @filtered_up_to_date_count += 1
-      elsif template.has_comparison?
-        comparison = template.latest_comparison
-        if comparison.pending?
-          @filtered_pending_count += 1
-        else
-          @filtered_up_to_date_count += 1
-        end
+      if template.comparison? && template.latest_comparison.pending?
+        @filtered_pending_count += 1
       else
-        # Templates without comparisons are considered "up to date" for stats purposes
         @filtered_up_to_date_count += 1
       end
     end

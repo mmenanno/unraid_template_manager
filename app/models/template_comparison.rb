@@ -24,7 +24,7 @@ class TemplateComparison < ApplicationRecord
     status == "applied"
   end
 
-  def has_differences?
+  def differences?
     differences.present? && differences.any?
   end
 
@@ -50,7 +50,7 @@ class TemplateComparison < ApplicationRecord
     self.manual_edits[field_name] = value
   end
 
-  def has_manual_edit?(field_name)
+  def manual_edit?(field_name)
     manual_edits.present? && manual_edits[field_name].present?
   end
 

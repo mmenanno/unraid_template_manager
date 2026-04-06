@@ -84,7 +84,7 @@ class TemplateComparisonsController < ApplicationController
     @comparison.differences&.each do |key, diff|
       next unless diff["type"] == "config" && diff["field_differences"]
 
-      diff["field_differences"].keys.each do |field|
+      diff["field_differences"].each_key do |field|
         field_level_choices << "#{key}_#{field}"
       end
     end
@@ -103,7 +103,7 @@ class TemplateComparisonsController < ApplicationController
       # Config field-level edits
       next unless diff["type"] == "config" && diff["field_differences"]
 
-      diff["field_differences"].keys.each do |field|
+      diff["field_differences"].each_key do |field|
         allowed_fields << "#{key}_#{field}"
       end
     end

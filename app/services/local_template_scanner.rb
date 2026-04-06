@@ -83,13 +83,13 @@ class LocalTemplateScanner
     unless File.directory?(@template_directory)
       raise DirectoryNotFoundError,
         "Template directory does not exist: #{@template_directory}. " \
-          "Ensure the UnRAID template directory is mapped to /templates volume. " \
-          "Use: -v /boot/config/plugins/dockerMan/templates-user:/templates"
+        "Ensure the UnRAID template directory is mapped to /templates volume. " \
+        "Use: -v /boot/config/plugins/dockerMan/templates-user:/templates"
     end
 
-    unless File.readable?(@template_directory)
-      raise DirectoryNotFoundError, "Template directory is not readable: #{@template_directory}"
-    end
+    return if File.readable?(@template_directory)
+
+    raise DirectoryNotFoundError, "Template directory is not readable: #{@template_directory}"
   end
 
   def process_template_file(file_path)
@@ -100,7 +100,7 @@ class LocalTemplateScanner
     return unless parsed_xml
 
     extract_template_data(parsed_xml, xml_content, file_path)
-  rescue => e
+  rescue StandardError => e
     raise FileReadError, "Error processing #{file_path}: #{e.message}"
   end
 
@@ -109,7 +109,7 @@ class LocalTemplateScanner
   rescue Encoding::InvalidByteSequenceError
     # Try reading as binary and force UTF-8 encoding
     File.read(file_path, encoding: "binary").force_encoding("utf-8")
-  rescue => e
+  rescue StandardError => e
     raise FileReadError, "Could not read file #{file_path}: #{e.message}"
   end
 

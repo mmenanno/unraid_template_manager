@@ -211,20 +211,20 @@ class TemplateComparisonTest < ActiveSupport::TestCase
     refute_includes TemplateComparison.applied, @comparison
   end
 
-  test "has_differences? should return true when differences exist" do
+  test "differences? should return true when differences exist" do
     @comparison.differences = { "network" => { "local" => "bridge", "community" => "host" } }
 
-    assert_predicate @comparison, :has_differences?
+    assert_predicate @comparison, :differences?
   end
 
-  test "has_differences? should return false when no differences exist" do
+  test "differences? should return false when no differences exist" do
     @comparison.differences = {}
 
-    refute_predicate @comparison, :has_differences?
+    refute_predicate @comparison, :differences?
 
     @comparison.differences = nil
 
-    refute_predicate @comparison, :has_differences?
+    refute_predicate @comparison, :differences?
   end
 
   test "user_choices_for_field should return correct choice" do
@@ -330,20 +330,20 @@ class TemplateComparisonTest < ActiveSupport::TestCase
     assert_equal "custom_network", @comparison.manual_edits["network"]
   end
 
-  test "has_manual_edit? should return true when edit exists" do
+  test "manual_edit? should return true when edit exists" do
     @comparison.manual_edits = { "network" => "custom_network" }
 
-    assert(@comparison.has_manual_edit?("network"))
-    refute(@comparison.has_manual_edit?("nonexistent"))
+    assert(@comparison.manual_edit?("network"))
+    refute(@comparison.manual_edit?("nonexistent"))
   end
 
-  test "has_manual_edit? should return false when no edits exist" do
+  test "manual_edit? should return false when no edits exist" do
     @comparison.manual_edits = {}
 
-    refute(@comparison.has_manual_edit?("network"))
+    refute(@comparison.manual_edit?("network"))
 
     @comparison.manual_edits = nil
 
-    refute(@comparison.has_manual_edit?("network"))
+    refute(@comparison.manual_edit?("network"))
   end
 end

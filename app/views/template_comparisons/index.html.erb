@@ -34,7 +34,7 @@
                       <div class="flex items-center">
                         <p class="text-sm font-medium text-blue-400 truncate"><%= comparison.local_template.name %></p>
                         <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                          <% if comparison.has_differences? %>
+                          <% if comparison.differences? %>
                             <%= comparison.differences.keys.size %> difference<%= "s" unless comparison.differences.keys.size == 1 %>
                           <% else %>
                             No differences
@@ -42,7 +42,7 @@
                         </span>
                       </div>
                       <p class="text-sm text-gray-400 truncate"><%= comparison.local_template.repository %></p>
-                      <% if comparison.has_differences? %>
+                      <% if comparison.differences? %>
                         <p class="text-sm text-gray-400 truncate">
                           Fields: <%= comparison.differences.keys.first(3).join(", ") %><%= "..." if comparison.differences.keys.size > 3 %>
                         </p>

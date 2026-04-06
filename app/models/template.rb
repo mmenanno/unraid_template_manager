@@ -43,7 +43,7 @@ class Template < ApplicationRecord
     local? && !not_in_community?
   end
 
-  def has_comparison?
+  def comparison?
     return false unless local?
 
     TemplateComparison.exists?(local_template: self)
@@ -81,7 +81,7 @@ class Template < ApplicationRecord
   end
 
   def parse_xml
-    @parsed_xml ||= Nokogiri::XML(xml_content)
+    @parse_xml ||= Nokogiri::XML(xml_content)
   end
 
   def extract_configs_from_xml
@@ -116,9 +116,7 @@ class Template < ApplicationRecord
       valid_configs = configs_data.select { |config| config[:name].present? }
       deduplicated_configs = valid_configs.reverse.uniq { |config| config[:name] }.reverse
 
-      if deduplicated_configs.size < valid_configs.size
-        Rails.logger.warn("Removed #{valid_configs.size - deduplicated_configs.size} duplicate configs for template: #{name}")
-      end
+      Rails.logger.warn("Removed #{valid_configs.size - deduplicated_configs.size} duplicate configs for template: #{name}") if deduplicated_configs.size < valid_configs.size
 
       template_configs.create!(deduplicated_configs) if deduplicated_configs.any?
 
@@ -126,7 +124,7 @@ class Template < ApplicationRecord
     rescue Nokogiri::XML::SyntaxError => e
       Rails.logger.error("Failed to parse XML for template #{name}: #{e.message}")
       raise
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("Failed to sync configs for template #{name}: #{e.message}")
       raise
     end

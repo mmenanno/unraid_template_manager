@@ -16,9 +16,7 @@ class CommunityApplicationsClient
 
     response = @http_client.get(FEED_URL)
 
-    unless response.success?
-      raise FeedUnavailableError, "Failed to fetch feed: #{response.status} #{response.reason_phrase}"
-    end
+    raise FeedUnavailableError, "Failed to fetch feed: #{response.status} #{response.reason_phrase}" unless response.success?
 
     parse_feed(response.body)
   rescue Faraday::Error => e
@@ -111,8 +109,7 @@ class CommunityApplicationsClient
     # Remove registry prefixes but keep the image name structure
     normalized = normalized.gsub(%r{^(docker\.io/|ghcr\.io/|lscr\.io/)}, "")
     # Remove :latest tag
-    normalized = normalized.gsub(/:latest$/, "")
-    normalized
+    normalized.gsub(/:latest$/, "")
   end
 
   def matches_search_query?(app, query)
@@ -164,7 +161,7 @@ class CommunityApplicationsClient
     Time.zone.parse(date_string)
   rescue ArgumentError
     # If it's a Unix timestamp
-    Time.zone.at(date_string.to_i) if date_string.to_i > 0
+    Time.zone.at(date_string.to_i) if date_string.to_i.positive?
   rescue StandardError
     nil
   end

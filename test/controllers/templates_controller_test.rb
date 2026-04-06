@@ -11,7 +11,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       source: "local",
     )
 
-    @local_template_2 = Template.create!(
+    @local_template_two = Template.create!(
       name: "Another App",
       repository: "test/another",
       xml_content: "<Container><Name>Another App</Name></Container>",
@@ -68,14 +68,14 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, @local_template.name
-    assert_includes response.body, @local_template_2.name
+    assert_includes response.body, @local_template_two.name
   end
 
   test "should filter templates by search query" do
     get templates_path, params: { search: "Another" }
 
     assert_response :success
-    assert_includes response.body, @local_template_2.name
+    assert_includes response.body, @local_template_two.name
     # Should not include the first template
     refute_includes response.body, "Test App"
   end
@@ -91,12 +91,12 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should combine search and status filters" do
-    @local_template_2.update!(not_in_community: true)
+    @local_template_two.update!(not_in_community: true)
 
     get templates_path, params: { search: "Another", status_filter: "not_in_community" }
 
     assert_response :success
-    assert_includes response.body, @local_template_2.name
+    assert_includes response.body, @local_template_two.name
   end
 
   test "should handle sorting with filters" do
@@ -109,7 +109,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     # Both templates contain "App" in their name
     assert_includes response.body, @local_template.name
-    assert_includes response.body, @local_template_2.name
+    assert_includes response.body, @local_template_two.name
   end
 
   test "should display stats that reflect filtered results" do
@@ -137,7 +137,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "(filtered)"
 
     # Should still show the template that matches
-    assert_includes response.body, @local_template_2.name
+    assert_includes response.body, @local_template_two.name
   end
 
   test "should show zero count when no templates match filter" do

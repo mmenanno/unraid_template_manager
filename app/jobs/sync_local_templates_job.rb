@@ -20,7 +20,7 @@ class SyncLocalTemplatesJob < ApplicationJob
       SyncCommunityTemplatesJob.perform_later
 
       result
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("Local template sync failed: #{e.message}")
       job_run.fail!(e.message)
       raise

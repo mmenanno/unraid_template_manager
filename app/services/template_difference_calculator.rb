@@ -32,9 +32,7 @@ class TemplateDifferenceCalculator
       community_raw = @community_template.send(field)
 
       # Skip normalization if values are exactly the same
-      if local_raw == community_raw
-        next
-      end
+      next if local_raw == community_raw
 
       local_value = normalize_field_value(local_raw, field)
       community_value = normalize_field_value(community_raw, field)
@@ -131,9 +129,7 @@ class TemplateDifferenceCalculator
 
         # For community templates, if no actual value is set but there's a default,
         # use the default as the actual value (since that's what would be used)
-        if actual_value.blank? && default_value.present? && template.community?
-          actual_value = default_value
-        end
+        actual_value = default_value if actual_value.blank? && default_value.present? && template.community?
 
         configs[name] = {
           name: name,

@@ -25,7 +25,7 @@ class UpdateTemplateComparisonsJob < ApplicationJob
         else
           results[:updated] += 1
         end
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error("Failed to update comparison for #{local_template.name}: #{e.message}")
         results[:errors] += 1
       end
@@ -33,7 +33,7 @@ class UpdateTemplateComparisonsJob < ApplicationJob
       Rails.logger.info("Template comparison updates completed: #{results[:created]} created, #{results[:updated]} updated, #{results[:errors]} errors")
       results
     end
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("Template comparison update failed: #{e.message}")
     raise
   end

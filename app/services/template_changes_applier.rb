@@ -24,7 +24,7 @@ class TemplateChangesApplier
     end
 
     true
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("Failed to apply template changes: #{e.message}")
     raise ApplyError, "Failed to apply changes: #{e.message}"
   end
@@ -78,8 +78,8 @@ class TemplateChangesApplier
   end
 
   def ensure_backup_directory!
-    FileUtils.mkdir_p(@backup_directory) unless Dir.exist?(@backup_directory)
-  rescue => e
+    FileUtils.mkdir_p(@backup_directory)
+  rescue StandardError => e
     raise BackupError, "Could not create backup directory: #{e.message}"
   end
 
@@ -101,7 +101,7 @@ class TemplateChangesApplier
     Rails.logger.info("Backed up template to: #{backup_path}")
 
     backup_path
-  rescue => e
+  rescue StandardError => e
     raise BackupError, "Failed to backup original template: #{e.message}"
   end
 
@@ -116,11 +116,8 @@ class TemplateChangesApplier
         # Use manual edit if available, otherwise use community value
         value = @comparison.manual_edit_for_field(key) || diff["community"]
         @local_template.send("#{field_name}=", value)
-      when "config", "new_config"
+      when "config", "new_config", "removed_config"
         # XML configs will be handled in XML generation
-        next
-      when "removed_config"
-        # Config removal will be handled in XML generation
         next
       end
     end
@@ -257,7 +254,7 @@ class TemplateChangesApplier
 
     File.write(@local_template.local_path, @local_template.xml_content)
     Rails.logger.info("Updated template file: #{@local_template.local_path}")
-  rescue => e
+  rescue StandardError => e
     raise ApplyError, "Failed to update template file: #{e.message}"
   end
 
@@ -284,8 +281,8 @@ class TemplateChangesApplier
 
     # For single-word categories (like "Downloaders"), UnRAID typically uses a trailing colon
     # Multi-word categories (like "Tools:Utilities") don't need the trailing colon
-    if unraid_category.count(":") == 0
-      unraid_category + ":"
+    if unraid_category.count(":").zero?
+      "#{unraid_category}:"
     else
       unraid_category
     end

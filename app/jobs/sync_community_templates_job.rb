@@ -42,7 +42,7 @@ class SyncCommunityTemplatesJob < ApplicationJob
             error: "No matching Community Applications template found",
           }
         end
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error("Failed to sync community template for #{local_template.repository}: #{e.message}")
         results[:errors] += 1
         results[:error_details] << {
@@ -57,7 +57,7 @@ class SyncCommunityTemplatesJob < ApplicationJob
 
       job_run.complete!(results)
       results
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("Community template sync failed: #{e.message}")
       job_run.fail!(e.message)
       raise
@@ -76,9 +76,7 @@ class SyncCommunityTemplatesJob < ApplicationJob
     end
 
     # If we still can't get XML content, we can't create a proper template
-    if xml_content.blank?
-      raise "Unable to generate template XML for #{community_data["Name"]} - both TemplateURL and feed data are insufficient"
-    end
+    raise "Unable to generate template XML for #{community_data["Name"]} - both TemplateURL and feed data are insufficient" if xml_content.blank?
 
     template_data = {
       name: community_data["Name"],
@@ -123,7 +121,7 @@ class SyncCommunityTemplatesJob < ApplicationJob
       Rails.logger.warn("Failed to fetch template XML from #{template_url}: #{response.status}")
       nil
     end
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("Error fetching template XML from #{template_url}: #{e.message}")
     nil
   end
@@ -133,7 +131,7 @@ class SyncCommunityTemplatesJob < ApplicationJob
 
     doc = Nokogiri::XML(xml_content)
     doc.at("WebUI")&.text&.strip
-  rescue => e
+  rescue StandardError => e
     Rails.logger.debug { "Could not extract WebUI from XML: #{e.message}" }
     nil
   end

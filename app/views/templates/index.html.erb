@@ -347,18 +347,11 @@
     </div>
     <ul class="divide-y divide-gray-700">
       <% @local_templates.each do |template| %>
+<% status_map = { "pending" => "needs_review", "reviewed" => "ready_to_apply", "applied" => "up_to_date" } %>
 <% template_status = if template.not_in_community?
      "not_in_community"
-   elsif template.has_comparison?
-     comparison = template.latest_comparison
-     case comparison.status
-     when "pending"
-       "needs_review"
-     when "reviewed"
-       "ready_to_apply"
-     when "applied"
-       "up_to_date"
-     end
+   elsif template.comparison?
+     status_map[template.latest_comparison.status]
    else
      "no_comparison"
    end %>
@@ -385,7 +378,7 @@
                         <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Not in CA
                         </span>
-                      <% elsif template.has_comparison? %>
+                      <% elsif template.comparison? %>
                         <% comparison = template.latest_comparison %>
                         <% if comparison.pending? %>
                           <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
