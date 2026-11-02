@@ -137,7 +137,7 @@ GEM
     globalid (1.4.0)
       activesupport (>= 6.1)
     hashdiff (1.2.1)
-    honeybadger (6.10.0)
+    honeybadger (6.10.1)
       logger
       ostruct
     i18n (1.15.2)
@@ -389,7 +389,7 @@ DEPENDENCIES
   diffy
   erb_lint
   faraday
-  honeybadger (~> 6.9)
+  honeybadger (~> 6.10)
   importmap-rails
   mocha
   nokogiri
